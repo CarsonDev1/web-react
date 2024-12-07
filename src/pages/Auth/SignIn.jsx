@@ -30,6 +30,8 @@ function SignIn() {
 				navigate('/staff/orders');
 			} else if (decoded.role === 'Content Staff') {
 				navigate('/admin/blog');
+			} else if (decoded.role === 'Manager') {
+				navigate('/admin/manage-product');
 			} else {
 				console.error('Unknown role:', decoded.role);
 				alert("You don't have permission to access this page.");

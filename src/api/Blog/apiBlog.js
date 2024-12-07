@@ -7,7 +7,13 @@ export const createBlog = (formData) => {
 		},
 	});
 };
-
+export const createProduct = (formData) => {
+	return api.post(`/Product/import-product`, formData, {
+		headers: {
+			'Content-Type': 'multipart/form-data',
+		},
+	});
+};
 export const getAllBlog = () => {
 	return api.get(`/Blog/get-all-blogs`, {
 		headers: {

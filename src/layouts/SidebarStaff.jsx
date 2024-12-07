@@ -63,7 +63,7 @@ export default function SidebarStaff() {
 				{user.role === 'Manager' && (
 					<Link to='/admin/manager'>
 						<ListItem>
-							<FontAwesomeIcon icon={faGauge} className='pr-3' /> blog
+							<FontAwesomeIcon icon={faGauge} className='pr-3' /> import product
 						</ListItem>
 					</Link>
 				)}
