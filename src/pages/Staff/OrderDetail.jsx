@@ -1,275 +1,272 @@
 // src/components/OrderDetail.js
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
-import { useSelector } from "react-redux";
-import { selectUser } from "../../redux/slices/authSlice";
-import HeaderStaff from "../../layouts/HeaderStaff";
-import SidebarStaff from "../../layouts/SidebarStaff";
-import {
-  Button,
-  Option,
-  Select,
-  Step,
-  Stepper,
-} from "@material-tailwind/react";
-import { approveOrder, rejectOrder } from "../../services/Staff/OrderService";
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
+import { useSelector } from 'react-redux';
+import { selectUser } from '../../redux/slices/authSlice';
+import HeaderStaff from '../../layouts/HeaderStaff';
+import SidebarStaff from '../../layouts/SidebarStaff';
+import { Button, Option, Select, Step, Stepper } from '@material-tailwind/react';
+import { approveOrder, rejectOrder } from '../../services/Staff/OrderService';
 
 const ORDER_STEPS = [
-  { id: 1, label: "Chờ xử lý" },
-  { id: 2, label: "Đã xác nhận" },
-  { id: 3, label: "Đã thanh toán" },
-  { id: 4, label: "Đang xử lý" },
-  { id: 5, label: "Đã giao hàng" },
-  { id: 6, label: "Hoàn thành" },
+	{ id: 1, label: 'Chờ xử lý' },
+	{ id: 2, label: 'Đã xác nhận' },
+	{ id: 3, label: 'Đã thanh toán' },
+	{ id: 4, label: 'Đang xử lý' },
+	{ id: 5, label: 'Đã giao hàng' },
+	{ id: 6, label: 'Hoàn thành' },
 ];
 
 const OrderDetail = () => {
-  const { orderId } = useParams();
-  const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const user = useSelector(selectUser);
-  const [reload, setReload] = useState(false);
-  // console.log(orderId);
+	const { orderId } = useParams();
+	const navigate = useNavigate();
+	const [order, setOrder] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+	const user = useSelector(selectUser);
+	const [reload, setReload] = useState(false);
+	const [newStatus, setNewStatus] = useState(null); // State for selected status
+	const [updating, setUpdating] = useState(false);
 
-  const [newStatus, setNewStatus] = useState(null); // State for selected status
-  const [updating, setUpdating] = useState(false);
-  const isStaffOrAdmin =
-    user && (user.role === "Order Coordinator" || user.role === "Admin");
-  const statusOptions = [
-    { label: "Đã hủy", value: 0 },
-    { label: "Chờ xử lý", value: 1 },
-    { label: "Đã xác nhận", value: 2 },
-    { label: "Đã thanh toán", value: 3 },
-    { label: "Đang xử lý", value: 4 },
-    { label: "Đã giao hàng", value: 5 },
-    { label: "Bị trì hoãn", value: 6 },
-    { label: "Hoàn thành", value: 7 },
-  ];
+	const isStaffOrAdmin =
+		user && (user.role === 'Order Coordinator' || user.role === 'Admin' || user.role === 'Staff');
 
-  const getCurrentStepIndex = (orderStatus) => {
-    const step = ORDER_STEPS.find((step) => step.label === orderStatus);
-    return step ? step.id - 1 : 0; // Return 0 if not found (safe default)
-  };
+	const statusOptions = [
+		{ label: 'Đã hủy', value: 0 },
+		{ label: 'Chờ xử lý', value: 1 },
+		{ label: 'Đã xác nhận', value: 2 },
+		{ label: 'Đã thanh toán', value: 3 },
+		{ label: 'Đang xử lý', value: 4 },
+		{ label: 'Đã giao hàng', value: 5 },
+		{ label: 'Bị trì hoãn', value: 6 },
+		{ label: 'Hoàn thành', value: 7 },
+	];
 
-  useEffect(() => {
-    const fetchOrderDetail = async () => {
-      try {
-        const response = await axios.get(
-          `https://capstone-project-703387227873.asia-southeast1.run.app/api/SaleOrder/get-sale-order-detail?orderId=${orderId}`
-        );
-        if (response.data.isSuccess) {
-          setOrder(response.data.data);
-        } else {
-          setError("Failed to retrieve order details");
-        }
-      } catch (error) {
-        setError("Error fetching order details");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrderDetail();
-  }, [orderId, reload]);
+	const getCurrentStepIndex = (orderStatus) => {
+		const step = ORDER_STEPS.find((step) => step.label === orderStatus);
+		return step ? step.id - 1 : 0;
+	};
 
-  const handleStatusChange = async () => {
-    if (newStatus === null || updating) return;
+	useEffect(() => {
+		const fetchOrderDetail = async () => {
+			try {
+				const response = await axios.get(
+					`https://capstone-project-703387227873.asia-southeast1.run.app/api/SaleOrder/get-sale-order-detail?orderId=${orderId}`
+				);
+				if (response.data.isSuccess) {
+					setOrder(response.data.data);
+				} else {
+					setError('Failed to retrieve order details');
+				}
+			} catch (error) {
+				setError('Error fetching order details');
+			} finally {
+				setLoading(false);
+			}
+		};
+		fetchOrderDetail();
+		getCurrentStepIndex();
+	}, [orderId, reload, statusOptions]);
 
-    setUpdating(true);
-    try {
-      const response = await axios.put(
-        `https://capstone-project-703387227873.asia-southeast1.run.app/api/SaleOrder/update-order-status?orderId=${orderId}&status=${newStatus}`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${user.token}`,
-          },
-        }
-      );
-      if (response.data.isSuccess) {
-        setOrder({ ...order, orderStatus: newStatus }); // Update order status locally
-        alert("Order status updated successfully");
-      } else {
-        alert("Failed to update order status");
-      }
-    } catch (error) {
-      alert("Error updating order status");
-    } finally {
-      setUpdating(false);
-    }
-  };
+	const handleStatusChange = async () => {
+		if (newStatus === null || updating) return;
 
-  const handleApprove = async () => {
-    const response = await approveOrder(orderId);
-    setReload((prev) => !prev);
-    console.log(response);
-  };
+		setUpdating(true);
+		try {
+			const response = await axios.put(
+				`https://capstone-project-703387227873.asia-southeast1.run.app/api/SaleOrder/update-order-status?orderId=${orderId}&status=${newStatus}`,
+				{},
+				{
+					headers: {
+						Authorization: `Bearer ${user.token}`,
+					},
+				}
+			);
+			if (response.data.isSuccess) {
+				// Update order status locally without needing to reload
+				setOrder((prevOrder) => ({ ...prevOrder, orderStatus: newStatus }));
+				alert('Order status updated successfully');
+			} else {
+				alert('Failed to update order status');
+			}
+		} catch (error) {
+			alert('Error updating order status');
+		} finally {
+			setUpdating(false);
+		}
+	};
 
-  const handleReject = async () => {
-    const response = await rejectOrder(orderId);
-    setReload((prev) => !prev);
-    navigate(-1);
-    // console.log(response);
-  };
+	const handleApprove = async () => {
+		const response = await approveOrder(orderId);
+		setReload((prev) => !prev);
+		console.log(response);
+	};
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+	const handleReject = async () => {
+		const response = await rejectOrder(orderId);
+		setReload((prev) => !prev);
+		navigate(-1);
+	};
 
-  return (
-    <>
-      <HeaderStaff />
-      <div className="flex h-full">
-        {isStaffOrAdmin && <SidebarStaff />}
-        <div className="flex-grow border-l-2 p-4">
-          <div className="mx-auto bg-white shadow-md rounded-lg overflow-hidden">
-            <div className="border-b px-6 py-4 flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">Order Item</span>
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </div>
-              <span className="text-red-500">Unfulfilled</span>
-            </div>
+	if (loading) return <p>Loading...</p>;
+	if (error) return <p className='text-red-500'>{error}</p>;
 
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-6">
-                Use this personalized guide to get your store up and running.
-              </p>
+	return (
+		<>
+			<HeaderStaff />
+			<div className='flex flex-col h-full md:flex-row'>
+				{isStaffOrAdmin && <SidebarStaff />}
 
-              <div className="flex items-start space-x-4 mb-8">
-                <div className="relative h-20 w-20 rounded-md overflow-hidden border">
-                  <img
-                    src="/placeholder.svg"
-                    alt="MacBook Air"
-                    layout="fill"
-                    objectFit="cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium mb-1">Laptop</h3>
-                  <p className="text-sm text-gray-600 mb-2">MacBook Air</p>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm">Medium</span>
-                    <div className="h-4 w-4 rounded-full bg-black" />
-                    <span className="text-sm">Black</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-600">3 x $500.00</div>
-                  <div className="font-medium">$1500.00</div>
-                </div>
-              </div>
+				<div className='flex-grow p-4 md:p-8'>
+					<div className='container p-6 mx-auto bg-white shadow-lg rounded-xl'>
+						<div className='flex items-center justify-between mb-6'>
+							<h2 className='text-3xl font-semibold text-gray-800'>Order Details #{order.orderCode}</h2>
+						</div>
 
-              <p className="text-sm text-gray-600 mb-6">
-                Effortlessly manage your orders with our intuitive Order List
-                page.
-              </p>
+						{/* Order Progress */}
+						<div className='mb-8'>
+							<Stepper activeStep={getCurrentStepIndex(order.orderStatus)} color='blue'>
+								{ORDER_STEPS.map((status, index) => (
+									<Step key={index} completed={index < getCurrentStepIndex(order.orderStatus)}>
+										<div className='flex flex-col items-center'>
+											<div className='text-xl font-semibold'>{status.id}</div>
+										</div>
+									</Step>
+								))}
+							</Stepper>
+						</div>
 
-              <div className="flex items-center justify-end space-x-4">
-                <button className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                  <svg
-                    className="inline-block w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                    />
-                  </svg>
-                  Fulfill item
-                </button>
-                <button className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                  Create shipping label
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+						{/* Ordered Products */}
+						<div className='mb-8'>
+							<h3 className='mb-4 text-2xl font-semibold text-gray-800'>Ordered Products</h3>
+							<ul>
+								{order.saleOrderDetailVMs.$values.map((item) => (
+									<li
+										key={item.productId}
+										className='flex items-center justify-between py-4 border-b border-gray-200'
+									>
+										<div className='flex items-center space-x-4'>
+											<img
+												src={item.imageUrl}
+												alt={item.productName}
+												className='object-cover w-16 h-16 rounded-lg shadow-md'
+											/>
+											<div>
+												<p className='font-semibold text-gray-700'>{item.productName}</p>
+												<p className='text-gray-500'>Quantity: {item.quantity}</p>
+											</div>
+										</div>
+									</li>
+								))}
+							</ul>
+							<div className='flex items-center space-x-6'>
+								<span className='px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-100 rounded-full'>
+									{order.orderStatus}
+								</span>
+								<select
+									onChange={(e) => setNewStatus(e.target.value)}
+									value={newStatus || order.orderStatus}
+									className='px-4 py-2 transition duration-200 ease-in-out border-2 border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400'
+								>
+									<option>Choose Status</option>
+									{statusOptions.map((status) => (
+										<option key={status.value} value={status.value}>
+											{status.label}
+										</option>
+									))}
+								</select>
+								<Button onClick={handleStatusChange} disabled={updating} color='blue'>
+									{updating ? 'Updating...' : 'Change Status'}
+								</Button>
+							</div>
+						</div>
 
-        {/* Right Side - Customer Info & Summary */}
-        <div className="w-1/4 p-4">
-          <div className="container mx-auto bg-white shadow-lg rounded-lg p-4">
-            {/* Customer Information */}
-            <div className="mb-6 border-b pb-4">
-              <h3 className="text-xl font-semibold mb-2">
-                Customer Information
-              </h3>
-              <p>
-                <strong>Name:</strong> {order.fullName}
-              </p>
-              <p>
-                <strong>Email:</strong> {order.email}
-              </p>
-              <p>
-                <strong>Phone:</strong> {order.contactPhone}
-              </p>
-              <p>
-                <strong>Address:</strong> {order.address}
-              </p>
-            </div>
+						{/* Order Summary */}
+						<div className='p-2 mt-8 rounded-lg bg-gray-50'>
+							<div className='flex justify-between py-3'>
+								<p className='text-lg font-medium text-gray-700'>Subtotal</p>
+								<p className='text-lg font-medium text-gray-700'>{order.subtotal}</p>
+							</div>
+							<div className='flex justify-between py-3'>
+								<p className='text-lg font-medium text-gray-700'>Shipping Fee</p>
+								<p className='text-lg font-medium text-green-600'>Free</p>
+							</div>
+							<div className='flex justify-between py-3 pt-4 mt-4 border-t border-gray-200'>
+								<p className='text-xl font-semibold'>Total</p>
+								<p className='text-xl font-semibold'>{order.total}</p>
+							</div>
+						</div>
 
-            {/* Order Summary */}
-            <div className="mb-6 border-b pb-4">
-              <h3 className="text-xl font-semibold mb-2">Order Summary</h3>
-              {/* <p><strong>Subtotal:</strong> {order.subTotal.toLocaleString()} VND</p> */}
-              <p>
-                <strong>Discount:</strong> 0.00 VND
-              </p>
-              <p>
-                <strong>Shipping Fee:</strong> Free
-              </p>
-              {/* <p><strong>Total:</strong> {order.totalAmount.toLocaleString()} VND</p> */}
-              <p>
-                <strong>Delivery Method:</strong> {order.deliveryMethod}
-              </p>
-              <p>
-                <strong>branch:</strong> {order.branchId}
-              </p>
-              <p>
-                <strong>Payment Method:</strong> {order.paymentMethod}
-              </p>
-            </div>
+						{order.orderStatus === 'Chờ xử lý' && order.deliveryMethod !== 'Đến cửa hàng nhận' && (
+							<div className='mt-6 space-x-4'>
+								<Button color='green' onClick={handleApprove}>
+									Approve
+								</Button>
+								<Button color='red' onClick={handleReject}>
+									Reject
+								</Button>
+							</div>
+						)}
+					</div>
+				</div>
 
-            {/* Additional Details */}
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-2">
-                Additional Information
-              </h3>
-              <p>
-                <strong>Order Note:</strong> {order.note}
-              </p>
-              <p>
-                <strong>Order Date:</strong>{" "}
-                {new Date(order.createdAt).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Payment Date:</strong>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+				<div className='w-full p-4 md:w-1/4'>
+					<div className='container p-6 mx-auto bg-white rounded-lg shadow-lg'>
+						<div className='pb-4 mb-6 border-b'>
+							<h3 className='mb-2 text-xl font-semibold'>Customer Information</h3>
+							<p>
+								<strong>Name:</strong> {order.fullName}
+							</p>
+							<p>
+								<strong>Email:</strong> {order.email}
+							</p>
+							<p>
+								<strong>Phone:</strong> {order.contactPhone}
+							</p>
+							<p>
+								<strong>Address:</strong> {order.address}
+							</p>
+						</div>
+
+						{/* Order Summary */}
+						<div className='pb-4 mb-6 border-b'>
+							<h3 className='mb-2 text-xl font-semibold'>Order Summary</h3>
+							<p>
+								<strong>Discount:</strong> 0.00 VND
+							</p>
+							<p>
+								<strong>Shipping Fee:</strong> Free
+							</p>
+							<p>
+								<strong>Delivery Method:</strong> {order.deliveryMethod}
+							</p>
+							<p>
+								<strong>Branch:</strong> {order.branchId}
+							</p>
+							<p>
+								<strong>Payment Method:</strong> {order.paymentMethod}
+							</p>
+						</div>
+
+						{/* Additional Details */}
+						<div className='mb-6'>
+							<h3 className='mb-2 text-xl font-semibold'>Additional Information</h3>
+							<p>
+								<strong>Order Note:</strong> {order.note}
+							</p>
+							<p>
+								<strong>Order Date:</strong> {new Date(order.createdAt).toLocaleDateString()}
+							</p>
+							<p>
+								<strong>Payment Date:</strong> {/* Add payment date here */}
+							</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</>
+	);
 };
 
 export default OrderDetail;
